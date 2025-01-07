@@ -1,11 +1,13 @@
-// const router = require('express').Router();
+const router = require('express').Router();
+const clientsController = require('../controllers/clients.js');
 
-// const productsController = require('../controllers/productsController');
+// Rotas para Clientes
+router.get('/clients/:id?', clientsController.get);
+router.post('/clients', clientsController.post);
+router.put('/clients/:id', clientsController.put);
+router.delete('/clients/:id', clientsController.remove);
 
-// //Rotas para produtos
-// router.get('/products/:id?',productsController.get)
-// router.post('/products',productsController.post)
-// router.put('/products/:id',productsController.put)
-// router.delete('/products/:id',productsController.remove)
+//Rotas para Pedidos (Orders)
 
-// module.exports = router
+
+module.exports = router

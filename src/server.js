@@ -35,7 +35,7 @@ db.connect()
 app.use(express.json())
 
 //Definindo as rotas
-//app.use('/api', routes)
+app.use('/api', routes)
 
 //Executando o servidor
 const port = process.env.PORT || 8080
