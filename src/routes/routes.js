@@ -1,6 +1,7 @@
 const router = require('express').Router();
 const clientsController = require('../controllers/clients.js');
 const ordersController = require('../controllers/orders.js')
+const paidOrdersController = require('../controllers/paidOrders.js')
 
 // Rotas para Clientes
 router.get('/clients/:id?', clientsController.get);
@@ -14,7 +15,7 @@ router.post('/orders', ordersController.post)
 router.patch('/orders/:orderId/products', ordersController.patch)
 router.put('/orders/:orderId/products/:productId', ordersController.put);
 router.delete('/orders/:orderId/products/:productId', ordersController.removeProduct);
-router.delete('/orders/:id', ordersController.remove);
+router.post('/orders/:orderId/archive', paidOrdersController.archivePaidOrder);
 
 
 module.exports = router
