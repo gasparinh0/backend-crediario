@@ -5,12 +5,13 @@ const ProductSchema = new mongoose.Schema({
   price: { type: Number, required: true },
   quantity: { type: Number, required: true },
   total: { type: Number, required: true },
+  createdAt: { type: String, default: Date.now },
 })
 
 const OrderSchema = new mongoose.Schema({
   clientName: { type: String, required: true },
-  creationDate: { type: Date, default: Date.now }, 
-  expirationDate: { type: Date }, 
+  creationDate: { type: String, default: Date.now }, 
+  expirationDate: { type: String }, 
   products: { type: [ProductSchema], required: true },
 })
 
