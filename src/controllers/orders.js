@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const OrdersModel = require('../models/orders.js')
+const { OrdersModel } = require('../models/orders.js')
 
 //Função auxiliar para formatar data
 const formatDate = (date) => {
@@ -208,29 +208,10 @@ const removeProduct = async (req, res) => {
     }
 };
 
-//Método DELETE para apagar pedidos
-async function remove(req, res) {
-    try {
-        const { id } = req.params
-
-        const deletionResult = await OrdersModel.deleteOne({ _id: id })
-
-        const message = deletionResult.deletedCount = 1 ? 'success' : 'error'
-
-        res.send({
-            message,
-        })
-    } catch (error) {
-        res.status(500).send({ message: 'Erro ao apagar cliente', error })
-    }
-}
-
-
 module.exports = {
     get,
     post,
     patch,
     put,
-    remove,
     removeProduct
 }
