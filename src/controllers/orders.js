@@ -13,10 +13,7 @@ const formatDate = (date) => {
 //Método GET para obter a lista de pedidos
 async function get(req, res) {
     try {
-        const { id } = req.params;
-        const obj = id ? { _id: id } : {}; // Objeto de filtro, vazio para buscar todos
-
-        const orders = await OrdersModel.find(obj);
+        const orders = await OrdersModel.find({ userId: req.user.id })
         res.send(orders);
     } catch (error) {
         res.status(500).send({ message: 'Erro ao buscar pedidos', error });
@@ -58,6 +55,7 @@ const post = async (req, res) => {
             creationDate: creation,
             expirationDate,
             products: processedProducts,
+            userId: req.user.id
         });
 
         await order.save();
