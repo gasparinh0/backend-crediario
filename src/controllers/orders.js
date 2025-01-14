@@ -1,7 +1,6 @@
-const mongoose = require('mongoose');
-const { OrdersModel } = require('../models/orders.js')
+const { OrdersModel } = require('../models/orders.js');
 
-//Função auxiliar para formatar data
+// Função auxiliar para formatar data
 const formatDate = (date) => {
     const d = new Date(date);
     const day = String(d.getDate()).padStart(2, '0');
@@ -10,32 +9,34 @@ const formatDate = (date) => {
     return `${day}/${month}/${year}`;
 };
 
-//Método GET para obter a lista de pedidos
+// Método GET para obter a lista de pedidos
 async function get(req, res) {
     try {
-        const { id } = req.params;
-        const obj = id ? { _id: id } : {}; // Objeto de filtro, vazio para buscar todos
+        if (!req.user || !req.user.id) {
+            return res.status(401).json({ message: 'Usuário não autenticado.' });
+        }
 
-        const orders = await OrdersModel.find(obj);
+        const orders = await OrdersModel.find({ userId: req.user.id });
         res.send(orders);
     } catch (error) {
         res.status(500).send({ message: 'Erro ao buscar pedidos', error });
     }
 }
 
-//Método POST para cadastrar pedidos
+// Método POST para cadastrar pedidos
 const post = async (req, res) => {
     try {
         const { clientName, creationDate, products } = req.body;
+
+        if (!req.user || !req.user.id) {
+            return res.status(401).json({ message: 'Usuário não autenticado.' });
+        }
 
         if (!clientName || !products || !Array.isArray(products) || products.length === 0) {
             return res.status(400).json({ error: 'O nome do cliente e os produtos são obrigatórios.' });
         }
 
-        // Garantir datas formatadas em DD/MM/YYYY
-        const creation = creationDate
-            ? formatDate(creationDate)
-            : formatDate(new Date());
+        const creation = creationDate ? formatDate(creationDate) : formatDate(new Date());
 
         const expiration = new Date(creationDate || Date.now());
         expiration.setDate(expiration.getDate() + 30);
@@ -47,9 +48,7 @@ const post = async (req, res) => {
                 throw new Error('Cada produto deve ter nome, preço e quantidade válidos.');
             }
             const total = product.total ?? price * quantity;
-            const createdAt = product.createdAt
-                ? formatDate(product.createdAt)
-                : formatDate(new Date());
+            const createdAt = product.createdAt ? formatDate(product.createdAt) : formatDate(new Date());
             return { name, price, quantity, total, createdAt };
         });
 
@@ -58,10 +57,10 @@ const post = async (req, res) => {
             creationDate: creation,
             expirationDate,
             products: processedProducts,
+            userId: req.user.id,
         });
 
         await order.save();
-
         return res.status(201).json(order);
     } catch (error) {
         console.error('Erro ao criar pedido:', error.message);
@@ -69,47 +68,32 @@ const post = async (req, res) => {
     }
 };
 
-//Método PATCH para adicionar produtos a um pedido
+// Método PATCH para adicionar produtos a um pedido
 const patch = async (req, res) => {
     try {
         const { orderId } = req.params;
         const { products } = req.body;
 
-        if (!orderId || !products || !Array.isArray(products) || products.length === 0) {
-            return res.status(400).json({ error: 'O ID do pedido e os produtos são obrigatórios.' });
+        if (!req.user || !req.user.id) {
+            return res.status(401).json({ message: 'Usuário não autenticado.' });
         }
 
-        const order = await OrdersModel.findById(orderId);
+        const order = await OrdersModel.findOne({ _id: orderId, userId: req.user.id });
         if (!order) {
-            return res.status(404).json({ error: 'Pedido não encontrado.' });
+            return res.status(404).json({ error: 'Pedido não encontrado ou acesso não autorizado.' });
         }
-
-        const formatDate = (date) => {
-            const d = new Date(date);
-            const day = String(d.getDate()).padStart(2, '0');
-            const month = String(d.getMonth() + 1).padStart(2, '0');
-            const year = d.getFullYear();
-            return `${day}/${month}/${year}`;
-        };
 
         const newProducts = products.map(product => {
             const { name, price, quantity } = product;
-
             if (!name || typeof price !== 'number' || typeof quantity !== 'number') {
                 throw new Error('Cada produto deve ter nome, preço e quantidade válidos.');
             }
-
             const total = product.total ?? price * quantity;
-            const createdAt = product.createdAt
-                ? formatDate(product.createdAt)
-                : formatDate(new Date());
-
+            const createdAt = product.createdAt ? formatDate(product.createdAt) : formatDate(new Date());
             return { name, price, quantity, total, createdAt };
         });
 
-        // Adiciona os novos produtos ao array existente
         order.products.push(...newProducts);
-
         await order.save();
 
         return res.status(200).json(order);
@@ -119,47 +103,31 @@ const patch = async (req, res) => {
     }
 };
 
-//Método PUT para atualizar informações de um produto em um pedido
+// Método PUT para atualizar informações de um produto em um pedido
 const put = async (req, res) => {
     try {
         const { orderId, productId } = req.params;
         const { name, price, quantity } = req.body;
 
-        // Verificar se os IDs são válidos
-        if (!mongoose.Types.ObjectId.isValid(orderId)) {
-            return res.status(400).json({ error: 'ID do pedido inválido.' });
+        if (!req.user || !req.user.id) {
+            return res.status(401).json({ message: 'Usuário não autenticado.' });
         }
 
-        if (!mongoose.Types.ObjectId.isValid(productId)) {
-            return res.status(400).json({ error: 'ID do produto inválido.' });
-        }
-
-        // Verificar se os dados necessários foram enviados
-        if (!name || typeof price !== 'number' || typeof quantity !== 'number') {
-            return res.status(400).json({
-                error: 'Nome, preço e quantidade do produto são obrigatórios e devem ser válidos.',
-            });
-        }
-
-        // Buscar o pedido pelo ID
-        const order = await OrdersModel.findById(orderId);
+        const order = await OrdersModel.findOne({ _id: orderId, userId: req.user.id });
         if (!order) {
-            return res.status(404).json({ error: 'Pedido não encontrado.' });
+            return res.status(404).json({ error: 'Pedido não encontrado ou acesso não autorizado.' });
         }
 
-        // Encontrar o produto dentro do pedido
         const product = order.products.id(productId);
         if (!product) {
             return res.status(404).json({ error: 'Produto não encontrado no pedido.' });
         }
 
-        // Atualizar os campos do produto
         product.name = name;
         product.price = price;
         product.quantity = quantity;
         product.total = price * quantity;
 
-        // Salvar as alterações no banco de dados
         await order.save();
 
         return res.status(200).json(order);
@@ -169,36 +137,26 @@ const put = async (req, res) => {
     }
 };
 
-//Método DELETE para remover produtos de um pedido
+// Método DELETE para remover produtos de um pedido
 const removeProduct = async (req, res) => {
     try {
         const { orderId, productId } = req.params;
 
-        // Verificar se os IDs são válidos
-        if (!mongoose.Types.ObjectId.isValid(orderId)) {
-            return res.status(400).json({ error: 'ID do pedido inválido.' });
+        if (!req.user || !req.user.id) {
+            return res.status(401).json({ message: 'Usuário não autenticado.' });
         }
 
-        if (!mongoose.Types.ObjectId.isValid(productId)) {
-            return res.status(400).json({ error: 'ID do produto inválido.' });
-        }
-
-        // Buscar o pedido pelo ID
-        const order = await OrdersModel.findById(orderId);
+        const order = await OrdersModel.findOne({ _id: orderId, userId: req.user.id });
         if (!order) {
-            return res.status(404).json({ error: 'Pedido não encontrado.' });
+            return res.status(404).json({ error: 'Pedido não encontrado ou acesso não autorizado.' });
         }
 
-        // Encontrar e remover o produto dentro do pedido
         const productIndex = order.products.findIndex(product => product._id.toString() === productId);
         if (productIndex === -1) {
             return res.status(404).json({ error: 'Produto não encontrado no pedido.' });
         }
 
-        // Remover o produto do array de produtos
         order.products.splice(productIndex, 1);
-
-        // Salvar as alterações no banco de dados
         await order.save();
 
         return res.status(200).json({ message: 'Produto removido com sucesso!', order });
@@ -213,5 +171,5 @@ module.exports = {
     post,
     patch,
     put,
-    removeProduct
-}
+    removeProduct,
+};

@@ -2,10 +2,7 @@ const ClientModel = require('../models/clients.js')
 
 async function get(req, res) {
     try {
-      const { id } = req.params;
-      const obj = id ? { _id: id } : {}; // Objeto de filtro, vazio para buscar todos
-  
-      const clients = await ClientModel.find(obj);
+      const clients = await ClientModel.find({ userId: req.user.id });
       res.send(clients);
     } catch (error) {
       res.status(500).send({ message: 'Erro ao buscar clientes', error });
@@ -17,14 +14,21 @@ async function get(req, res) {
       const { name, telephone } = req.body;
   
       if (!name || !telephone) {
+        console.error('Faltando nome ou telefone:', req.body);
         return res.status(400).send({ message: 'Nome e telefone são obrigatórios.' });
       }
   
-      const client = new ClientModel({ name, telephone });
+      if (!req.user || !req.user.id) {
+        console.error('Usuário não autenticado ou sem ID:', req.user);
+        return res.status(401).send({ message: 'Usuário não autenticado.' });
+      }
+  
+      const client = new ClientModel({ name, telephone, userId: req.user.id });
       await client.save();
   
-      res.send({ message: 'Cliente cadastrado com sucesso!' });
+      res.send({ message: 'Cliente cadastrado com sucesso!', client });
     } catch (error) {
+      console.error('Erro ao salvar cliente:', error); // Log detalhado do erro
       res.status(500).send({ message: 'Erro ao salvar cliente', error });
     }
   }
