@@ -2,6 +2,29 @@ const mongoose = require('mongoose');
 const { OrdersModel } = require('../models/orders.js');
 const PaidOrder = require('../models/paidOrders.js');
 
+const getPaidOrders = async (req, res) => {
+  try {
+      // Obter o ID do usuário logado do objeto `req.user`
+      const userId = req.user.id;
+
+      if (!userId) {
+          return res.status(400).json({ error: 'ID do usuário não fornecido.' });
+      }
+
+      // Buscar os pedidos pagos filtrados pelo userId
+      const paidOrders = await PaidOrder.find({ userId });
+
+      if (!paidOrders || paidOrders.length === 0) {
+          return res.status(404).json({ message: 'Nenhum pedido pago encontrado para este usuário.' });
+      }
+
+      return res.status(200).json(paidOrders);
+  } catch (error) {
+      console.error('Erro ao obter pedidos pagos:', error.message);
+      return res.status(500).json({ error: 'Erro ao obter pedidos pagos.' });
+  }
+};
+
 const archivePaidOrder = async (req, res) => {
     try {
       const { orderId } = req.params;
@@ -33,5 +56,6 @@ const archivePaidOrder = async (req, res) => {
   };
 
 module.exports = {
-    archivePaidOrder
+    archivePaidOrder,
+    getPaidOrders
 }
