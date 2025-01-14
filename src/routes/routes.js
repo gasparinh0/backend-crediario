@@ -19,6 +19,9 @@ router.put("/orders/:orderId/products/:productId", authMiddleware, ordersControl
 router.delete("/orders/:orderId/products/:productId", authMiddleware, ordersController.removeProduct);
 router.post("/orders/:orderId/archive", authMiddleware, paidOrdersController.archivePaidOrder);
 
+//Rota para pedidos pagos
+router.get('/paid-orders', authMiddleware, paidOrdersController.getPaidOrders);
+
 // Rotas para Autenticação (Registro e Login não precisam de autenticação)
 router.post("/register", authController.postRegister);
 router.post("/login", authController.postLogin);
