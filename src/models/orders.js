@@ -13,6 +13,7 @@ const OrderSchema = new mongoose.Schema({
   creationDate: { type: String, default: Date.now }, 
   expirationDate: { type: String }, 
   products: { type: [ProductSchema], required: true },
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
 })
 
 
